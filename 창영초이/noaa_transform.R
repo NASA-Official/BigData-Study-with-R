@@ -3,6 +3,7 @@ install.packages("GGally", repos = "http://cran.us.r-project.org")
 install.packages("inspectdf", repos = "http://cran.us.r-project.org")
 install.packages("skimr", repos = "http://cran.us.r-project.org")
 install.packages("usethis", repos = "http://cran.us.r-project.org")
+install.packages("bigmemory-package", repos = "http://cran.us.r-project.org")
 
 
 library(caret)
@@ -27,6 +28,8 @@ all <- read.csv(
 )
 
 
+
+summary(all)
 
 all$ELECTRON_DATA_STATE <- as.factor(all$ELECTRON_DATA_STATE)
 all$PROTONS_DATA_STATE <- as.factor(all$PROTONS_DATA_STATE)
@@ -157,27 +160,115 @@ selected_regulate <- regulate %>% select(
     "KP"
 )
 
+
+write.csv(  
+    selected_regulate,
+    'aurora_regulated.csv',
+    row.names = FALSE
+)
+
+
+
+
+# 2001년도 데이터
+selected_regulate_2001 <- selected_regulate %>% filter(selected_regulate$YEAR == 2001)
+
 # train:test = 7:3으로 랜덤 추출
-nrows <- NROW(selected_regulate)
+nrows <- NROW(selected_regulate_2001)
 set.seed(2023)
 # half <- sample(1:nrows, 0.3 * nrows)
-# NROW(half) # 94248
+# NROW(half) # 56548
 # str(half)
-# half_seventy <- half[1: 65973]
-# half_thirty <- half[65974:94248]
+# half_seventy <- half[1:39583]
+# half_thirty <- half[39584:56548]
 
 index <- sample(1:nrows, 0.7 * nrows)
+train_2001 <- selected_regulate_2001[index, ]
+test_2001 <- selected_regulate_2001[-index, ]
 
-train <- selected_regulate[index, ]
-test <- selected_regulate[-index, ]
 
+temp <- selected_regulate_2001[-index, ]
+
+
+nrow(test_2001)
+nrow(temp)
+
+summary(temp)
+
+temp <- test_2001$KP
+
+
+
+# train <- selected_regulate[half_seventy, ]
+# test <- selected_regulate[half_thirty, ]
 
 usethis::edit_r_environ()
-install.packages("unix")
-
-
 
 aurora_model <- randomForest(KP ~ .,
-    data = train,
-    ntree = 500, proximity = TRUE, importance = TRUE
+    data = train_2001,
+    do.trace = 10,
+    keep.forest = TRUE,
+    ntree = 500,
+    proximity = TRUE, 
+    importance = TRUE
+)
+
+
+
+
+aurora_model
+
+
+install.packages("ModelMetrics", repos = "http://cran.us.r-project.org")
+install.packages("scales", repos = "http://cran.us.r-project.org")
+
+library(ModelMetrics)
+library(scales)
+
+aurora_model
+
+
+result <- predict(
+    aurora_model,
+    newdata = test_2001
+)
+
+result
+str(result)
+
+result <- as.numeric(result)
+temp <- as.numeric(temp)
+
+
+result
+result <- as.data.frame()
+
+str(temp)
+str(result)
+
+
+RMSE(
+    result,
+    temp,
+)
+
+# 정답 데이터 부르기
+
+summary(aurora_model)$r.squared
+
+head(result, 30)
+head(temp, 30)
+
+
+
+aurora_model
+
+
+saveRDS(
+    aurora_model,
+    file = "./Model/randomForest2001_Mark1.rda"
+)
+
+model_read <- readRDS(
+    "./Model/randomForest2001_Mark1.rda"
 )
