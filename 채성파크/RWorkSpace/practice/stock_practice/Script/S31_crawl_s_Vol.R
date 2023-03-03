@@ -1,0 +1,10 @@
+library(XML)
+theurl<-paste("http://finance.daum.net/item/foreign_yyyymmdd.daum?page=1&code=005930")
+volume_html<-readHTMLTable(theurl)
+volume_table<-volume_html[[1]][c(2:6,9:13,16:20,23:27,30:34,37:41),c(1:5)]
+names(volume_table)<-c("date","f_tot","f_rate","f_net","o_net")
+volume_table$date<-paste("20",volume_table$date,sep="")
+volume_table[,2]<-as.numeric(gsub(",","",as.character(volume_table[,2])))
+volume_table[,3]<-as.numeric(gsub("%","",as.character(volume_table[,3])))
+volume_table[,4]<-as.numeric(gsub(",","",as.character(volume_table[,4])))
+volume_table[,5]<-as.numeric(gsub(",","",as.character(volume_table[,5])))
